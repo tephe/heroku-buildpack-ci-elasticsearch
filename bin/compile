@@ -22,7 +22,8 @@ indent() {
   sed -u 's/^/       /'
 }
 
-VERSION="6.4.3"
+VERSION="${BUILDPACK_ELASTICSEARCH_VERSION:-6.4.3}"
+MAJOR_VERSION=$(echo "$VERSION" | cut -d. -f1)
 INSTALL_DIR="$BUILD_DIR/.heroku/vendor/elasticsearch"
 PROFILE_PATH="$BUILD_DIR/.profile.d/elasticsearch.sh"
 
@@ -33,9 +34,15 @@ mkdir -p $CACHE_DIR
 echo "Search in cache directory $CACHE_DIR/elasticsearch-$VERSION" | indent
 
 if [ ! -d $CACHE_DIR/elasticsearch-$VERSION ]; then
-	echo "Fetching and installing elasticsearch" | indent
+	echo "Fetching and installing elasticsearch-$VERSION" | indent
 	cd $CACHE_DIR
-	curl -sOL "https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-$VERSION.tar.gz"
+
+    if [ $MAJOR_VERSION -ge 7 ];then
+        curl -sL -o "elasticsearch-$VERSION.tar.gz" "https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-$VERSION-linux-x86_64.tar.gz"
+    else
+        curl -sOL "https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-$VERSION.tar.gz"
+    fi
+
 	tar zxf "elasticsearch-$VERSION.tar.gz"
 	cd "elasticsearch-$VERSION"
 	cp -r $CACHE_DIR/elasticsearch-$VERSION/* $INSTALL_DIR/
@@ -46,13 +53,24 @@ fi
 
 cat <<EOF >> $PROFILE_PATH
 export PATH=/app/.heroku/vendor/elasticsearch/bin:\$PATH
-export ELASTICSEARCH_URL=localhost:9200
+export ELASTICSEARCH_URL=http://127.0.0.1:9200
 
 source $BUILD_DIR/.profile.d/jvmcommon.sh
 
 if [ ! -f /tmp/es.pid ]; then
-  echo "Starting ElasticSearch..."
+  echo "Starting Elasticsearch..."
   elasticsearch -d -p /tmp/es.pid
+
+  while true; do  # infinite loop
+    curl -o /dev/null -s http://localhost:9200 # silent curl request to ES
+    if [ $? -eq 0 ]; then
+      # curl returned 0 - success
+      echo "Elasticsearch is ready..."
+      break # terminate loop
+    fi
+    echo "Waiting for Elasticsearch..."
+    sleep 1 # short pause between requests
+  done
 fi
 EOF
 
