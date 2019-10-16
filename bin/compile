@@ -56,7 +56,11 @@ export PATH=/app/.heroku/vendor/elasticsearch/bin:\$PATH
 export ELASTICSEARCH_URL=http://localhost:9200
 
 source $BUILD_DIR/.profile.d/jvmcommon.sh
-export ES_JAVA_OPTS=$JAVA_OPTS
+
+if [ $MAJOR_VERSION -ge 7 ];then
+    unset JAVA_HOME
+    export ES_JAVA_OPTS=\$JAVA_OPTS
+fi
 
 if [ ! -f /tmp/es.pid ]; then
   echo "Starting Elasticsearch..."
