@@ -57,6 +57,11 @@ export ELASTICSEARCH_URL=http://localhost:9200
 
 source $BUILD_DIR/.profile.d/jvmcommon.sh
 
+if [ $MAJOR_VERSION -ge 7 ];then
+    unset JAVA_HOME
+    export ES_JAVA_OPTS=\$JAVA_OPTS
+fi
+
 if [ ! -f /tmp/es.pid ]; then
   echo "Starting Elasticsearch..."
   elasticsearch -d -p /tmp/es.pid
