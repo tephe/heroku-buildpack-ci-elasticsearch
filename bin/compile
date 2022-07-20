@@ -64,7 +64,7 @@ fi
 
 if [ ! -f /tmp/es.pid ]; then
   echo "Starting Elasticsearch..."
-  elasticsearch -d -p /tmp/es.pid
+  elasticsearch -E xpack.security.enabled=false -d -p /tmp/es.pid
 
   echo "Waiting for Elasticsearch cluster to go to green..."
   curl -o /dev/null --retry-delay 3 --retry 200 --retry-connrefuse --max-time 60 -s "http://localhost:9200/_cluster/health?wait_for_status=green&timeout=50s" # curl request to ES
